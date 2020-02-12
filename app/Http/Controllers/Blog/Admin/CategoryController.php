@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Blog\Admin;
 
+use App\Http\Requests\BlogCategoryCreateRequest;
 use App\Http\Requests\BlogCategoryUpdateRequest;
 use App\Models\BlogCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use test\Mockery\Adapter\Phpunit\BaseClassStub;
 
 class CategoryController extends BaseController
 {
@@ -20,6 +23,19 @@ class CategoryController extends BaseController
         return view('blog.admin.categories.index', compact('paginator'));
     }
 
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        $item = new BlogCategory();
+        $categoryList = BlogCategory::all();
+
+        return view('blog.admin.categories.edit', compact('item', 'categoryList'));
+    }
+
 
     /**
      * Show the form for editing the specified resource.
@@ -33,6 +49,31 @@ class CategoryController extends BaseController
         $categoryList = BlogCategory::all();
 
         return view('blog.admin.categories.edit', compact('item', 'categoryList'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(BlogCategoryCreateRequest $request)
+    {
+        $data = $request->input();
+        if (empty($data['slug'])){
+            $data['slug'] = Str::slug($data['title']);
+        }
+        //dd($data);
+        $item = (new BlogCategory())->create($data);
+
+        if ($item){
+            return redirect()->route('blog.admin.categories.edit', [$item->id])
+                ->with(['success' => 'Успешно сохранено']);
+        }else{
+            return back()
+                ->withErrors(['msg' => 'Ошибка сохранения'])
+                ->withInput();
+        }
     }
 
     /**
@@ -63,7 +104,10 @@ class CategoryController extends BaseController
         }
 
         $data =$request->all();
-        $result = $item->fill($data)->save();
+        if (empty($data['slug'])){
+            $data['slug'] = Str::slug($data['title']);
+        }
+        $result = $item->update($data);
 
         if ($result){
             return redirect()
